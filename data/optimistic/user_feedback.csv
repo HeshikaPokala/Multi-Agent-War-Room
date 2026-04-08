@@ -1,0 +1,43 @@
+feedback_id,date,channel,sentiment,feedback_text,tags
+FB-001,2026-03-25,support_ticket,negative,The new feature is confusing and made me miss my train.,price;spike
+FB-002,2026-03-25,in_app,positive,"Smooth experience, didn't think the new UI would make sense but it perfectly does.",ui;smooth
+FB-003,2026-03-26,app_store,negative,It took way too long to find a driver today. Going to competition.,latency;freeze
+FB-004,2026-03-26,app_store,neutral,Can you add a tutorial? I didn't get it at first.,confusion;minor
+FB-005,2026-03-26,support_ticket,neutral,"It's okay, a bit confusing at first but whatever.",neutral;wait
+FB-006,2026-03-26,in_app,positive,I feel like the app is finally listening to us.,transparency;trust
+FB-007,2026-03-27,support_ticket,neutral,Can you add a tutorial? I didn't get it at first.,feature_value;mixed
+FB-008,2026-03-27,app_store,negative,It took way too long to find a driver today. Going to competition.,rejection_count;dropoff
+FB-009,2026-03-27,support_ticket,neutral,Can you add a tutorial? I didn't get it at first.,feature_value;mixed
+FB-010,2026-03-28,app_store,positive,"Excellent feature, hope you add more like this.",speed;matched
+FB-011,2026-03-28,app_store,neutral,Waiting time felt exactly the same. No difference.,neutral;wait
+FB-012,2026-03-28,app_store,neutral,"It's okay, a bit confusing at first but whatever.",feature_value;mixed
+FB-013,2026-03-28,support_ticket,neutral,"I see the new feature, but I don't really use it much.",confusion;minor
+FB-014,2026-03-29,app_store,negative,I've been a loyal customer but this update is garbage.,latency;freeze
+FB-015,2026-03-29,support_ticket,positive,"Pricing seems fairer now, didn't mind the wait.",speed;matched
+FB-016,2026-03-30,in_app,negative,"Absolutely awful latency, app froze twice.",rejection_count;dropoff
+FB-017,2026-03-30,in_app,negative,It took way too long to find a driver today. Going to competition.,frustration;cancel
+FB-018,2026-03-30,app_store,neutral,"It's okay, a bit confusing at first but whatever.",layout;change
+FB-019,2026-03-31,support_ticket,negative,"Absolutely awful latency, app froze twice.",latency;freeze
+FB-020,2026-03-31,in_app,positive,"Excellent feature, hope you add more like this.",pricing;fair
+FB-021,2026-04-01,support_ticket,positive,"Love the new transparency, I finally understand the delays.",transparency;trust
+FB-022,2026-04-01,in_app,positive,"Matched quickly even during rush hour, impressive.",transparency;trust
+FB-023,2026-04-01,in_app,positive,"Excellent feature, hope you add more like this.",ui;smooth
+FB-024,2026-04-02,support_ticket,positive,"Matched quickly even during rush hour, impressive.",speed;matched
+FB-025,2026-04-03,in_app,positive,Much better than the old confusing screen.,pricing;fair
+FB-026,2026-04-04,support_ticket,positive,Driver accepted my ride much faster today!,ui;smooth
+FB-027,2026-04-04,in_app,positive,"Pricing seems fairer now, didn't mind the wait.",transparency;trust
+FB-028,2026-04-04,support_ticket,neutral,Waiting time felt exactly the same. No difference.,confusion;minor
+FB-029,2026-04-04,app_store,positive,I feel like the app is finally listening to us.,transparency;trust
+FB-030,2026-04-04,support_ticket,positive,"Smooth experience, didn't think the new UI would make sense but it perfectly does.",transparency;trust
+FB-031,2026-04-04,in_app,positive,"Pricing seems fairer now, didn't mind the wait.",transparency;trust
+FB-032,2026-04-04,in_app,positive,"Matched quickly even during rush hour, impressive.",pricing;fair
+FB-033,2026-04-05,support_ticket,positive,I feel like the app is finally listening to us.,transparency;trust
+FB-034,2026-04-05,in_app,positive,Much better than the old confusing screen.,ui;smooth
+FB-035,2026-04-05,in_app,positive,Much better than the old confusing screen.,ui;smooth
+FB-036,2026-04-05,app_store,positive,Driver accepted my ride much faster today!,ui;smooth
+FB-037,2026-04-05,app_store,neutral,"It's okay, a bit confusing at first but whatever.",layout;change
+FB-038,2026-04-05,app_store,positive,Much better than the old confusing screen.,transparency;trust
+FB-039,2026-04-06,support_ticket,positive,"Pricing seems fairer now, didn't mind the wait.",pricing;fair
+FB-040,2026-04-07,support_ticket,positive,Driver accepted my ride much faster today!,ui;smooth
+FB-041,2026-04-07,in_app,positive,"Excellent feature, hope you add more like this.",speed;matched
+FB-042,2026-04-07,in_app,positive,Driver accepted my ride much faster today!,pricing;fair

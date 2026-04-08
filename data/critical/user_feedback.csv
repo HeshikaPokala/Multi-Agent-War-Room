@@ -1,0 +1,41 @@
+feedback_id,date,channel,sentiment,feedback_text,tags
+FB-001,2026-03-25,in_app,negative,Price spiked for absolutely no reason. Ripoff.,latency;freeze
+FB-002,2026-03-25,in_app,negative,Cancelled my ride out of sheer frustration after 3 retries.,price;spike
+FB-003,2026-03-25,in_app,neutral,"I see the new feature, but I don't really use it much.",layout;change
+FB-004,2026-03-25,support_ticket,negative,The new feature is confusing and made me miss my train.,rejection_count;dropoff
+FB-005,2026-03-25,in_app,negative,It took way too long to find a driver today. Going to competition.,churn_risk;competition
+FB-006,2026-03-26,app_store,negative,Price spiked for absolutely no reason. Ripoff.,price;spike
+FB-007,2026-03-27,in_app,negative,Why is it rejecting so much now? I gave up.,price;spike
+FB-008,2026-03-27,in_app,negative,I've been a loyal customer but this update is garbage.,frustration;cancel
+FB-009,2026-03-27,support_ticket,negative,I'm uninstalling. Customer support won't even reply.,latency;freeze
+FB-010,2026-03-27,support_ticket,neutral,"I see the new feature, but I don't really use it much.",feature_value;mixed
+FB-011,2026-03-28,support_ticket,negative,The new feature is confusing and made me miss my train.,frustration;cancel
+FB-012,2026-03-28,app_store,positive,"Love the new transparency, I finally understand the delays.",transparency;trust
+FB-013,2026-03-28,support_ticket,negative,I'm uninstalling. Customer support won't even reply.,price;spike
+FB-014,2026-03-28,app_store,positive,Much better than the old confusing screen.,transparency;trust
+FB-015,2026-03-29,app_store,positive,I feel like the app is finally listening to us.,ui;smooth
+FB-016,2026-03-29,app_store,negative,I've been a loyal customer but this update is garbage.,rejection_count;dropoff
+FB-017,2026-03-29,app_store,neutral,"The pricing changed softly, unsure if it's better or worse.",layout;change
+FB-018,2026-03-30,support_ticket,negative,Why is it rejecting so much now? I gave up.,frustration;cancel
+FB-019,2026-03-30,in_app,positive,Much better than the old confusing screen.,ui;smooth
+FB-020,2026-03-31,app_store,negative,Wasted 15 minutes watching the screen spin.,rejection_count;dropoff
+FB-021,2026-04-01,support_ticket,negative,It took way too long to find a driver today. Going to competition.,frustration;cancel
+FB-022,2026-04-01,in_app,negative,I've been a loyal customer but this update is garbage.,churn_risk;competition
+FB-023,2026-04-02,in_app,negative,I'm uninstalling. Customer support won't even reply.,frustration;cancel
+FB-024,2026-04-02,in_app,negative,Cancelled my ride out of sheer frustration after 3 retries.,frustration;cancel
+FB-025,2026-04-02,in_app,negative,Cancelled my ride out of sheer frustration after 3 retries.,latency;freeze
+FB-026,2026-04-02,support_ticket,negative,Why is it rejecting so much now? I gave up.,rejection_count;dropoff
+FB-027,2026-04-02,support_ticket,negative,The new feature is confusing and made me miss my train.,frustration;cancel
+FB-028,2026-04-02,app_store,negative,Wasted 15 minutes watching the screen spin.,rejection_count;dropoff
+FB-029,2026-04-03,app_store,negative,Cancelled my ride out of sheer frustration after 3 retries.,price;spike
+FB-030,2026-04-03,in_app,positive,"Matched quickly even during rush hour, impressive.",transparency;trust
+FB-031,2026-04-03,in_app,negative,It took way too long to find a driver today. Going to competition.,rejection_count;dropoff
+FB-032,2026-04-03,app_store,negative,"Absolutely awful latency, app froze twice.",latency;freeze
+FB-033,2026-04-04,in_app,negative,I'm uninstalling. Customer support won't even reply.,frustration;cancel
+FB-034,2026-04-06,in_app,negative,It took way too long to find a driver today. Going to competition.,frustration;cancel
+FB-035,2026-04-06,in_app,negative,Why is it rejecting so much now? I gave up.,frustration;cancel
+FB-036,2026-04-06,in_app,negative,Wasted 15 minutes watching the screen spin.,frustration;cancel
+FB-037,2026-04-06,in_app,negative,I've been a loyal customer but this update is garbage.,churn_risk;competition
+FB-038,2026-04-07,app_store,negative,"Absolutely awful latency, app froze twice.",churn_risk;competition
+FB-039,2026-04-07,in_app,negative,The new feature is confusing and made me miss my train.,rejection_count;dropoff
+FB-040,2026-04-07,in_app,negative,It took way too long to find a driver today. Going to competition.,latency;freeze

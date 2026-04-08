@@ -1,0 +1,25 @@
+project: "AI/ML Engineer Assessment - Purple Merit"
+generated_on: "2026-04-08"
+datasets:
+  assessment_1:
+    baseline:
+      - path: "data/baseline/metrics_timeseries.csv"
+        rows: 14
+        description: "Launch metrics over 14 days with mixed trend degradation."
+      - path: "data/baseline/user_feedback.csv"
+        rows: 40
+        description: "User feedback with positive/neutral/negative entries, repeated issues, and outliers."
+      - path: "data/baseline/release_notes.md"
+        description: "Feature context, known issues, launch criteria, and guardrails."
+    alternative_scenarios:
+      - path: "data/optimistic/metrics_timeseries.csv"
+        rows: 14
+        expected_decision_tendency: "Proceed"
+      - path: "data/critical/metrics_timeseries.csv"
+        rows: 14
+        expected_decision_tendency: "Pause or Roll Back"
+  assessment_2_bonus:
+    - path: "data/assessment2/bug_report.md"
+      description: "Structured bug report with expected vs actual behavior and repro hints."
+    - path: "data/assessment2/application.log"
+      description: "Log file with stack trace, error signature, and noise lines."

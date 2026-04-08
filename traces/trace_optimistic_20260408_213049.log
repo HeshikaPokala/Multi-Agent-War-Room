@@ -1,0 +1,11 @@
+2026-04-08T16:00:49.993682+00:00 | Coordinator        | Run started for scenario=optimistic
+2026-04-08T16:00:49.994185+00:00 | Tool:metrics       | Loaded and summarized metrics data
+2026-04-08T16:00:49.994236+00:00 | Tool:feedback      | Loaded and summarized feedback data
+2026-04-08T16:00:49.994359+00:00 | PM Agent           | Completed go/no-go framing
+2026-04-08T16:00:49.994489+00:00 | Data Analyst Agent | Completed metric trend and threshold checks
+2026-04-08T16:00:49.994599+00:00 | Marketing/Comms Agent | Completed communication guidance
+2026-04-08T16:00:49.994766+00:00 | Risk/Critic Agent  | Completed risk challenge and mitigations
+2026-04-08T16:00:49.994981+00:00 | Reliability Engineer Agent | Assessed incident severity and guardrails
+2026-04-08T16:00:49.995156+00:00 | Business Impact Agent | Estimated business exposure and support impact
+2026-04-08T16:00:49.995313+00:00 | Coordinator        | Decision computed: Proceed (confidence=0.65)
+2026-04-08T16:00:49.995724+00:00 | Coordinator        | Outputs written: final_decision_optimistic.json, final_decision_optimistic.yaml

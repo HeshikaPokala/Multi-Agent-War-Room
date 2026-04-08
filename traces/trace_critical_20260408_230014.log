@@ -1,0 +1,12 @@
+2026-04-08T17:30:14.111952+00:00 | Coordinator        | Run started for scenario=critical
+2026-04-08T17:30:14.112919+00:00 | Tool:metrics       | Loaded and summarized metrics data
+2026-04-08T17:30:14.112980+00:00 | Tool:feedback      | Loaded and summarized feedback data
+2026-04-08T17:30:14.113024+00:00 | Tool:feedback      | Feedback source: /Users/heshikapokala/Documents/Projects/Purple Merit/data/critical/user_feedback.csv
+2026-04-08T17:30:14.113074+00:00 | PM Agent           | Completed go/no-go framing
+2026-04-08T17:30:14.113116+00:00 | Data Analyst Agent | Completed metric trend and threshold checks
+2026-04-08T17:30:14.113159+00:00 | Marketing/Comms Agent | Completed communication guidance
+2026-04-08T17:30:14.113202+00:00 | Risk/Critic Agent  | Completed risk challenge and mitigations
+2026-04-08T17:30:14.113245+00:00 | Reliability Engineer Agent | Assessed incident severity and guardrails
+2026-04-08T17:30:14.113287+00:00 | Business Impact Agent | Estimated business exposure and support impact
+2026-04-08T17:30:14.113342+00:00 | Coordinator        | Decision computed: Roll Back (confidence=0.9)
+2026-04-08T17:30:14.113646+00:00 | Coordinator        | Outputs written: final_decision_critical.json, final_decision_critical.yaml

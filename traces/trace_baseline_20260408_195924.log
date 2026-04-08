@@ -1,0 +1,11 @@
+2026-04-08T14:29:24.658893+00:00 | Coordinator        | Run started for scenario=baseline
+2026-04-08T14:29:24.660599+00:00 | Tool:metrics       | Loaded and summarized metrics data
+2026-04-08T14:29:24.660654+00:00 | Tool:feedback      | Loaded and summarized feedback data
+2026-04-08T14:29:24.660704+00:00 | PM Agent           | Completed go/no-go framing
+2026-04-08T14:29:24.660751+00:00 | Data Analyst Agent | Completed metric trend and threshold checks
+2026-04-08T14:29:24.660796+00:00 | Marketing/Comms Agent | Completed communication guidance
+2026-04-08T14:29:24.660837+00:00 | Risk/Critic Agent  | Completed risk challenge and mitigations
+2026-04-08T14:29:24.660877+00:00 | Reliability Engineer Agent | Assessed incident severity and guardrails
+2026-04-08T14:29:24.660918+00:00 | Business Impact Agent | Estimated business exposure and support impact
+2026-04-08T14:29:24.660961+00:00 | Coordinator        | Decision computed: Pause (confidence=0.95)
+2026-04-08T14:29:24.661250+00:00 | Coordinator        | Outputs written: final_decision_baseline.json, final_decision_baseline.yaml
