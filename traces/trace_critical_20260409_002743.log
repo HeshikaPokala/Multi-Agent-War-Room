@@ -1,5 +1,0 @@
-2026-04-08T18:57:43.140707+00:00 | Coordinator        | Run started for scenario=critical
-2026-04-08T18:57:43.141826+00:00 | Tool:metrics       | Loaded and summarized metrics data
-2026-04-08T18:57:43.141891+00:00 | Tool:feedback      | Loaded and summarized feedback data
-2026-04-08T18:57:43.141931+00:00 | Tool:feedback      | Feedback source: /Users/heshikapokala/Documents/Projects/Purple Merit/data/critical/user_feedback.csv
-2026-04-08T18:57:49.163869+00:00 | PM Agent           | LLM reasoning used (Ollama)

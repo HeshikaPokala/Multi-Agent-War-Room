@@ -17,13 +17,19 @@ from src.utils.io_helpers import ensure_dir, write_json, write_yaml
 from src.utils.logger import TraceLogger
 
 
-def _decide(metric_summary: Dict[str, float]) -> str:
-    if (
+def _is_severe_failure(metric_summary: Dict[str, float]) -> bool:
+    return (
         metric_summary["ride_confirmation_rate_pct"] < 68.0
         or metric_summary["cancellation_dropoff_rate_pct"] > 34.0
         or metric_summary["driver_acceptance_rate_pct"] < 52.0
         or metric_summary["churn_pct"] > 4.5
-    ):
+        or metric_summary["time_to_ride_confirmation_sec"] > 160.0
+        or metric_summary["rejections_per_successful_ride"] > 4.2
+    )
+
+
+def _decide(metric_summary: Dict[str, float]) -> str:
+    if _is_severe_failure(metric_summary):
         return "Roll Back"
     if (
         metric_summary["ride_confirmation_rate_pct"] < 74.0
@@ -42,6 +48,8 @@ def _clamp(value: float, minimum: float = 0.0, maximum: float = 1.0) -> float:
 
 def _agent_vote_from_metrics(metric_summary: Dict[str, float], feedback_summary: Dict[str, Any], agent_name: str) -> str:
     if agent_name == "pm":
+        if metric_summary["churn_pct"] > 4.8 or feedback_summary["negative_ratio"] > 0.72:
+            return "Roll Back"
         if metric_summary["churn_pct"] > 4.0 or feedback_summary["negative_ratio"] > 0.55:
             return "Pause"
         return "Proceed"
@@ -63,6 +71,8 @@ def _agent_vote_from_metrics(metric_summary: Dict[str, float], feedback_summary:
             high_risk += 1
         if metric_summary["cancellation_dropoff_rate_pct"] > 30.0:
             high_risk += 1
+        if feedback_summary["negative_ratio"] > 0.7:
+            high_risk += 1
         if high_risk >= 2:
             return "Roll Back"
         if high_risk == 1:
@@ -75,7 +85,7 @@ def _agent_vote_from_metrics(metric_summary: Dict[str, float], feedback_summary:
             return "Pause"
         return "Proceed"
     if agent_name == "business":
-        if metric_summary["ride_confirmation_rate_pct"] < 68.0:
+        if metric_summary["ride_confirmation_rate_pct"] < 66.0 or metric_summary["churn_pct"] > 4.8:
             return "Roll Back"
         if metric_summary["ride_confirmation_rate_pct"] < 74.0 or metric_summary["churn_pct"] > 3.6:
             return "Pause"
@@ -133,7 +143,18 @@ def _confidence(metric_summary: Dict[str, float], feedback_summary: Dict[str, An
     feedback_completeness = _clamp(feedback_count / 30.0)
     data_completeness = _clamp(0.7 * (metric_fields_present / metric_fields_total) + 0.3 * feedback_completeness)
 
-    score = 0.10 + 0.45 * evidence_quality + 0.30 * agreement_score + 0.15 * data_completeness
+    severity_signal = _clamp(
+        max(
+            (68.0 - metric_summary["ride_confirmation_rate_pct"]) / 12.0,
+            (metric_summary["cancellation_dropoff_rate_pct"] - 34.0) / 20.0,
+            (160.0 - metric_summary["time_to_ride_confirmation_sec"]) / 160.0 * -1.0,
+            (metric_summary["rejections_per_successful_ride"] - 4.2) / 4.0,
+            (metric_summary["churn_pct"] - 4.5) / 3.0,
+            0.0,
+        )
+    )
+
+    score = 0.10 + 0.50 * evidence_quality + 0.25 * agreement_score + 0.15 * data_completeness + 0.10 * severity_signal
     score = round(_clamp(score, 0.45, 0.95), 2)
 
     return {
@@ -142,6 +163,7 @@ def _confidence(metric_summary: Dict[str, float], feedback_summary: Dict[str, An
             "evidence_quality": round(evidence_quality, 3),
             "agent_agreement": round(agreement_score, 3),
             "data_completeness": round(data_completeness, 3),
+            "severity_signal": round(severity_signal, 3),
         },
         "evidence_strength_factors": {
             "confirmation": round(confirmation_strength, 3),
@@ -221,7 +243,125 @@ def _normalize_agent_output(
     narrative_negative = any(marker in text_blob for marker in negative_markers)
     if normalized.get("decision_lean") == "Proceed" and narrative_negative:
         normalized["decision_lean"] = _agent_vote_from_metrics(metric_summary, feedback_summary, role_key)
+    # Always anchor the final lean in deterministic metric evidence.
+    normalized["decision_lean"] = _agent_vote_from_metrics(metric_summary, feedback_summary, role_key)
     return normalized
+
+
+def _normalize_risk_register(
+    candidate_risks: Any, metric_summary: Dict[str, float], feedback_summary: Dict[str, Any]
+) -> Any:
+    generic_mitigations = {"investigate and mitigate", "monitor"}
+    normalized = []
+    if isinstance(candidate_risks, list):
+        for item in candidate_risks:
+            if not isinstance(item, dict):
+                continue
+            risk_text = str(item.get("risk", "")).strip().lstrip("* ").strip()
+            severity = str(item.get("severity", "medium")).strip().lower()
+            if severity not in {"low", "medium", "high"}:
+                severity = "medium"
+            mitigation = str(item.get("mitigation", "")).strip().lstrip("* ").strip()
+            if not risk_text:
+                continue
+            if not mitigation or mitigation.lower() in generic_mitigations:
+                if "rejection" in risk_text.lower():
+                    mitigation = "Add rejection-sensitive dispatch fallback and alert when rejections per success exceeds 4.0."
+                elif "drop" in risk_text.lower() or "abandon" in risk_text.lower():
+                    mitigation = "Ship alternative UX copy and auto-trigger A/B rollback if drop-off remains above 30% for 6 hours."
+                elif "sentiment" in risk_text.lower() or "support" in risk_text.lower():
+                    mitigation = "Activate proactive comms and support macros with 2-hour sentiment tracking."
+                else:
+                    mitigation = "Define threshold-based owner actions and verify impact in 6-hour checkpoints."
+            normalized.append({"risk": risk_text, "severity": severity, "mitigation": mitigation})
+
+    if normalized:
+        return normalized[:4]
+
+    fallback = []
+    if metric_summary["rejections_per_successful_ride"] > 4.0:
+        fallback.append(
+            {
+                "risk": "Repeated rejection loops are increasing rider frustration and booking failure risk.",
+                "severity": "high",
+                "mitigation": "Enable stricter dispatch retries and alert marketplace ops when rejection ratio exceeds 4.0.",
+            }
+        )
+    if metric_summary["cancellation_dropoff_rate_pct"] > 30.0:
+        fallback.append(
+            {
+                "risk": "Elevated drop-off after rejection visibility can reduce conversion and trust.",
+                "severity": "high",
+                "mitigation": "Roll out alternative UX framing and auto-trigger rollback if drop-off stays above 30% for 6 hours.",
+            }
+        )
+    if feedback_summary.get("negative_ratio", 0.0) > 0.5:
+        fallback.append(
+            {
+                "risk": "Sustained negative feedback can increase support load and social escalation.",
+                "severity": "medium",
+                "mitigation": "Use targeted in-app communication and prioritize high-frequency complaint tags in support routing.",
+            }
+        )
+    if not fallback:
+        fallback.append(
+            {
+                "risk": "No immediate high-severity risks detected, but trend regression remains possible.",
+                "severity": "low",
+                "mitigation": "Maintain 6-hour metric checks and freeze new experiments until trend stability is confirmed.",
+            }
+        )
+    return fallback
+
+
+def _build_action_plan(decision: str) -> Any:
+    if decision == "Roll Back":
+        return [
+            {"action": "Pause rollout and revert rejection-count UI for all unstable zones", "owner": "Engineering + Release Manager"},
+            {"action": "Launch incident review with marketplace and product within 2 hours", "owner": "PM + Reliability"},
+            {"action": "Deploy mitigation experiment for dispatch retry ordering", "owner": "Marketplace Ops + Data"},
+            {"action": "Re-evaluate go/no-go after 24-hour stabilized metrics window", "owner": "War Room Coordinator"},
+        ]
+    if decision == "Pause":
+        return [
+            {"action": "Hold rollout expansion and keep current cohort size fixed", "owner": "Release Manager"},
+            {"action": "Tune rider UX copy around rejection count context", "owner": "Product + Design"},
+            {"action": "Optimize dispatch and driver ping sequencing", "owner": "Engineering + Marketplace Ops"},
+            {"action": "Run 6-hour metric checkpoint review with rollback trigger criteria", "owner": "Data Analyst"},
+        ]
+    return [
+        {"action": "Continue phased rollout with zone-level guardrails", "owner": "PM + Release Manager"},
+        {"action": "Monitor confirmation, drop-off, and rejection metrics every 6 hours", "owner": "Data Analyst"},
+        {"action": "Keep support macros ready for emerging complaint clusters", "owner": "Support Operations"},
+        {"action": "Publish weekly post-launch performance update", "owner": "Marketing/Comms"},
+    ]
+
+
+def _build_communication_plan(
+    decision: str, feedback_summary: Dict[str, Any], metric_summary: Dict[str, float]
+) -> Dict[str, str]:
+    negative_ratio = feedback_summary.get("negative_ratio", 0.0)
+    if decision == "Roll Back":
+        return {
+            "internal": "Communicate immediate rollback, incident owners, and 6-hour checkpoint cadence across product, support, and ops.",
+            "external": "Acknowledge temporary rollback of rejection-count visibility, explain reliability-first intent, and share near-term fix timeline.",
+        }
+    if decision == "Pause":
+        return {
+            "internal": "Share pause decision with guardrail thresholds and owner-level actions for UX, dispatch, and support handling.",
+            "external": (
+                "Communicate that rejection-count visibility remains limited while we improve ride confirmation quality and reduce booking friction."
+            ),
+        }
+    if negative_ratio > 0.35 or metric_summary["rejections_per_successful_ride"] > 3.0:
+        return {
+            "internal": "Proceed carefully with targeted monitoring and rapid-response messaging templates for support.",
+            "external": "Announce phased rollout with transparent quality monitoring and quick follow-up improvements.",
+        }
+    return {
+        "internal": "Proceed with confidence; maintain standard monitoring and weekly status updates.",
+        "external": "Announce wider rollout of rejection-count transparency as a rider trust and decision-aid improvement.",
+    }
 
 
 def run_war_room(project_root: Path, scenario: str, event_callback: Optional[Callable[[str], None]] = None) -> Dict[str, Any]:
@@ -308,10 +448,7 @@ def run_war_room(project_root: Path, scenario: str, event_callback: Optional[Cal
         event_callback=event_callback,
     )
     risk_view = _normalize_agent_output("risk", risk_view, metric_summary, feedback_summary)
-    if "risk_register" not in risk_view:
-        risk_view["risk_register"] = [
-            {"risk": r, "severity": "medium", "mitigation": "Investigate and mitigate"} for r in risk_view.get("risk_flags", [])
-        ]
+    risk_view["risk_register"] = _normalize_risk_register(risk_view.get("risk_register"), metric_summary, feedback_summary)
     logger.log("Risk/Critic Agent", "Completed risk challenge and mitigations")
     _emit(event_callback, "Risk/Critic Agent completed challenge phase")
     reliability_view = _run_agent_smart(
@@ -343,12 +480,8 @@ def run_war_room(project_root: Path, scenario: str, event_callback: Optional[Cal
     logger.log("Coordinator", f"Decision computed: {decision} (confidence={confidence})")
     _emit(event_callback, f"Coordinator decision: {decision} (confidence={confidence})")
 
-    action_plan = [
-        {"action": "Tune rider UX copy around rejection count context", "owner": "Product + Design"},
-        {"action": "Optimize dispatch and driver ping sequencing", "owner": "Engineering + Marketplace Ops"},
-        {"action": "Roll out contextual fare guidance only in high-friction zones", "owner": "Growth + Pricing"},
-        {"action": "Run 6-hour metric checkpoint review", "owner": "Data Analyst"},
-    ]
+    action_plan = _build_action_plan(decision)
+    communication_plan = _build_communication_plan(decision, feedback_summary, metric_summary)
 
     final_output = build_final_output(
         decision=decision,
@@ -361,7 +494,7 @@ def run_war_room(project_root: Path, scenario: str, event_callback: Optional[Cal
         },
         risk_register=risk_view["risk_register"],
         action_plan=action_plan,
-        communication_plan=comms_view["communication_plan"],
+        communication_plan=communication_plan,
         confidence_score=confidence,
         confidence_increase_factors=[
             "Zone-level analysis of rejection count impact on rider behavior",

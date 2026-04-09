@@ -74,6 +74,32 @@ If Ollama is unavailable, the system automatically falls back to deterministic r
 - `outputs/final_decision_<scenario>.yaml`
 - `traces/trace_<scenario>_<timestamp>.log`
 
+## Requirement Traceability (Assessment 1)
+
+- Multi-agent orchestration:
+  - `src/orchestrator/coordinator.py`
+  - agents under `src/agents/`
+- Programmatic tools (minimum two):
+  - Metrics loader/summarizer: `src/tools/metrics_tools.py`
+  - Feedback loader/sentiment summary: `src/tools/feedback_tools.py`
+- Structured final JSON/YAML output:
+  - Schema builder: `src/schemas/final_output_schema.py`
+  - Writers: `src/utils/io_helpers.py`
+- Traceability:
+  - Runtime traces stored in `traces/`
+  - Logger implementation: `src/utils/logger.py`
+- Reproducibility checks:
+  - Scenario compliance tests: `tests/test_assignment1_compliance.py`
+
+## Verify
+
+```bash
+python run.py --scenario baseline
+python run.py --scenario optimistic
+python run.py --scenario critical
+python -m unittest tests/test_assignment1_compliance.py
+```
+
 ## Required Env Variables
 
 None for this baseline deterministic version.

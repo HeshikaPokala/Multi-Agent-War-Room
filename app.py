@@ -11,12 +11,16 @@ from src.orchestrator.coordinator import run_war_room
 def _load_metrics(project_root: Path, scenario: str) -> pd.DataFrame:
     return pd.read_csv(project_root / "data" / scenario / "metrics_timeseries.csv")
 
-def _decision_badge(vote: str) -> str:
-    if vote == "Proceed":
-        return "tag-proceed"
-    if vote == "Roll Back":
-        return "tag-rollback"
-    return "tag-pause"
+def _agent_display_name(key: str) -> str:
+    names = {
+        "pm": "Product Manager Agent",
+        "data": "Data Analyst Agent",
+        "risk": "Risk/Critic Agent",
+        "reliability": "Reliability Engineer Agent",
+        "business": "Business Impact Agent",
+        "comms": "Marketing/Comms Agent",
+    }
+    return names.get(key, key.upper())
 
 def _agent_findings(result: Dict[str, object], key: str) -> List[str]:
     if key == "data":
@@ -51,6 +55,27 @@ def _load_all_metrics(project_root: Path) -> pd.DataFrame:
     if dfs:
         return pd.concat(dfs, ignore_index=True)
     return pd.DataFrame()
+
+def _decision_reasoning_text(result: Dict[str, object], scenario: str) -> str:
+    rationale = result.get("rationale", {})
+    feedback_summary = rationale.get("feedback_summary", {})
+    sent = feedback_summary.get("sentiment_counts", {})
+    positive = int(sent.get("positive", 0))
+    neutral = int(sent.get("neutral", 0))
+    negative = int(sent.get("negative", 0))
+    decision = str(result.get("decision", "Pause"))
+    confidence = float(result.get("confidence_score", 0.0))
+    key_drivers = rationale.get("key_metric_drivers", [])
+    driver_text = key_drivers[0] if key_drivers else "Core launch metrics and feedback trends were reviewed."
+
+    return (
+        f"The final decision is made by the War Room Coordinator Agent after consolidating all agent outputs, "
+        f"tool-based metric analysis, and sentiment evidence for the {scenario} scenario. "
+        f"Some users are happy with rejection-count visibility because it shows the app is actively searching "
+        f"(positive={positive}, neutral={neutral}), while others report friction and frustration (negative={negative}). "
+        f"Considering both positives and negatives, the system concludes: {decision} (confidence {confidence:.2f}). "
+        f"Primary reason: {driver_text}"
+    )
 
 def main() -> None:
     st.set_page_config(page_title="War Room Command Center", layout="wide")
@@ -186,6 +211,27 @@ def main() -> None:
         margin-bottom: 0.3rem;
     }
 
+    .confidence-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 14px 16px;
+        margin-bottom: 0.75rem;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+    }
+    .confidence-label {
+        font-size: 0.82rem;
+        color: #64748b;
+        font-weight: 600;
+        margin-bottom: 6px;
+    }
+    .confidence-value {
+        font-size: 1.9rem;
+        color: #0f172a;
+        font-weight: 800;
+        line-height: 1.1;
+    }
+
     hr {
         border-color: #e2e8f0;
     }
@@ -273,6 +319,54 @@ def main() -> None:
         """, unsafe_allow_html=True)
 
         st.markdown("<hr>", unsafe_allow_html=True)
+        # ===== RATIONALE =====
+        st.subheader("📌 Rationale: Key Drivers")
+        rationale = result.get("rationale", {})
+        key_drivers = rationale.get("key_metric_drivers", [])
+        if key_drivers:
+            for item in key_drivers:
+                st.markdown(f"- {item}")
+        else:
+            st.info("No key drivers were generated.")
+
+        st.markdown("#### Metric References")
+        latest_metrics = metrics_df.iloc[-1]
+        metric_refs = pd.DataFrame(
+            [
+                {"Metric": "Ride Confirmation Rate %", "Value": float(latest_metrics["ride_confirmation_rate_pct"])},
+                {"Metric": "Cancellation Drop-off Rate %", "Value": float(latest_metrics["cancellation_dropoff_rate_pct"])},
+                {"Metric": "Retry Rate %", "Value": float(latest_metrics["retry_rate_pct"])},
+                {"Metric": "Time to Ride Confirmation (sec)", "Value": float(latest_metrics["time_to_ride_confirmation_sec"])},
+                {"Metric": "Driver Acceptance Rate %", "Value": float(latest_metrics["driver_acceptance_rate_pct"])},
+                {"Metric": "Rejections per Successful Ride", "Value": float(latest_metrics["rejections_per_successful_ride"])},
+                {"Metric": "Support Tickets", "Value": float(latest_metrics["support_tickets"])},
+                {"Metric": "Churn %", "Value": float(latest_metrics["churn_pct"])},
+            ]
+        )
+        st.dataframe(metric_refs, use_container_width=True, hide_index=True)
+
+        st.markdown("#### Feedback Summary")
+        feedback_summary = rationale.get("feedback_summary", {})
+        sentiment_counts = feedback_summary.get("sentiment_counts", {})
+        fb1, fb2, fb3 = st.columns(3)
+        fb1.metric("Positive", sentiment_counts.get("positive", 0))
+        fb2.metric("Neutral", sentiment_counts.get("neutral", 0))
+        fb3.metric("Negative", sentiment_counts.get("negative", 0))
+        st.markdown(f"**Negative Ratio:** {feedback_summary.get('negative_ratio', 0.0):.3f}")
+        top_tags = feedback_summary.get("top_issue_tags", [])
+        if top_tags:
+            st.markdown(f"**Top Issues:** {', '.join(top_tags)}")
+
+        st.markdown("<hr>", unsafe_allow_html=True)
+        # ===== RISK REGISTER =====
+        st.subheader("⚠️ Risk Register")
+        risk_register = result.get("risk_register", [])
+        if risk_register:
+            st.dataframe(pd.DataFrame(risk_register), use_container_width=True, hide_index=True)
+        else:
+            st.info("No risks were generated.")
+
+        st.markdown("<hr>", unsafe_allow_html=True)
         # ===== AGENTS =====
         st.subheader("🧠 Agent Intelligence")
 
@@ -298,7 +392,7 @@ def main() -> None:
             <div class="chat" style="border-left: 5px solid {color}">
                 <div class="chat-header">
                     <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:{color};"></span>
-                    {agent.upper()} AGENT &mdash; {vote.upper()}
+                    {_agent_display_name(agent)} &mdash; {vote.upper()}
                 </div>
                 <div class="chat-body">{summary}</div>
                 <ul>{bullets}</ul>
@@ -308,7 +402,7 @@ def main() -> None:
         st.markdown("<hr>", unsafe_allow_html=True)
         # ===== ACTION PLAN =====
         st.subheader("⚡ Action Plan")
-        st.dataframe(pd.DataFrame(result["action_plan_24_48h"]))
+        st.dataframe(pd.DataFrame(result["action_plan_24_48h"]), use_container_width=True, hide_index=True)
 
         # ===== COMMUNICATION =====
         st.subheader("📢 Communication")
@@ -319,9 +413,88 @@ def main() -> None:
         else:
             st.write(comm_plan)
 
-        # ===== DEBUG =====
-        if st.button("Show Raw Output"):
-            st.json(result)
+        st.markdown("<hr>", unsafe_allow_html=True)
+        # ===== TOOLS USED =====
+        st.subheader("🧰 Tools Used by Agents")
+        st.markdown(
+            "- **Metric aggregation + trend comparison:** computes latest KPI values and short-window trend deltas to detect "
+            "improvement or deterioration before agent reasoning starts."
+        )
+        st.markdown(
+            "- **Sentiment summary:** analyzes user feedback to produce sentiment counts, top recurring issue themes, "
+            "and negative ratio so agents can weigh user impact."
+        )
+        st.markdown(
+            "- **How they are used in flow:** the coordinator first builds a shared evidence snapshot from metrics and feedback; "
+            "then each agent evaluates that same snapshot from its function, and the coordinator synthesizes the final decision."
+        )
+
+        st.markdown("<hr>", unsafe_allow_html=True)
+        # ===== FINAL DECISION AUTHORITY =====
+        st.subheader("🏛️ Final Decision Authority")
+        st.info(
+            "Final decision owner: **War Room Coordinator Agent**. "
+            "Individual agents provide recommendations, but the coordinator applies final guardrails and confidence scoring."
+        )
+        st.write(_decision_reasoning_text(result, scenario))
+
+        st.markdown("<hr>", unsafe_allow_html=True)
+        # ===== CONFIDENCE =====
+        st.subheader("🎯 Confidence")
+        breakdown = result.get("confidence_breakdown", {})
+        components = breakdown.get("components", {})
+        confidence_cols = st.columns(4)
+        score = float(result.get("confidence_score", 0.0))
+        confidence_cols[0].markdown(
+            f"""
+            <div class="confidence-card">
+                <div class="confidence-label">Confidence Score</div>
+                <div class="confidence-value">{score:.2f}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        if components:
+            cc1, cc2, cc3 = confidence_cols[1], confidence_cols[2], confidence_cols[3]
+            cc1.markdown(
+                f"""
+                <div class="confidence-card">
+                    <div class="confidence-label">Evidence Quality</div>
+                    <div class="confidence-value">{components.get('evidence_quality', 0.0):.3f}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            cc2.markdown(
+                f"""
+                <div class="confidence-card">
+                    <div class="confidence-label">Agent Agreement</div>
+                    <div class="confidence-value">{components.get('agent_agreement', 0.0):.3f}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            cc3.markdown(
+                f"""
+                <div class="confidence-card">
+                    <div class="confidence-label">Data Completeness</div>
+                    <div class="confidence-value">{components.get('data_completeness', 0.0):.3f}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+            severity_signal = components.get("severity_signal")
+            if severity_signal is not None:
+                st.caption(f"Severity Signal: {float(severity_signal):.3f}")
+            st.caption(
+                "Confidence is lower when agent recommendations diverge. "
+                "For baseline, the strongest penalty is cross-agent disagreement."
+            )
+
+        st.markdown("#### What Would Increase Confidence")
+        for item in result.get("what_would_increase_confidence", []):
+            st.markdown(f"- {item}")
 
 if __name__ == "__main__":
     main()
