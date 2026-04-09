@@ -1,20 +1,100 @@
 # Multi-agent launch war room
 
-Python pipeline that ingests mock launch metrics and user feedback, runs six specialist agents in sequence (with optional local LLM assistance), and writes a single structured go/no-go record: Proceed, Pause, or Roll Back, plus rationale, risk register, a short action plan, communication guidance, and a numeric confidence score. Traces append to timestamped log files under traces/.
+- Python pipeline: load mock launch CSVs, run six specialist agents in order, emit one structured go/no-go (Proceed, Pause, Roll Back), rationale, risk register, 24–48h-style action plan, communication plan, confidence score, traces.
+- Optional local LLM (Ollama) enriches agent prose; if the model is missing or errors, each agent falls back to small rule functions in src/agents/.
+- Interactive UI: Streamlit app.py. No FastAPI or separate SPA in this repo.
 
-The orchestrator is a linear Python coordinator, not a graph framework. It loads CSVs, builds metric and sentiment summaries, passes the same shared context dict into each agent call, then merges agent output into one final object. The published decision and confidence score are computed with fixed threshold rules on the metric summary (and related vote alignment), not by taking a free-form vote from the LLM. When Ollama is up, agents may produce richer narrative; on failure the code falls back to small deterministic functions in src/agents/. Outputs are normalized so decision_lean values and risk rows stay consistent with those rules.
+## Real-world anchor (Rapido-style transparency)
 
-Agent order: Product Manager, Data Analyst, Marketing/Comms, Risk/Critic, Reliability Engineer, Business Impact. Each step logs to the trace file. Shared state is the scenario name plus metric_summary and feedback_summary; each agent returns a dict that the coordinator may normalize (findings, recommendation, risk_register, communication_plan fields, etc.).
+- The scenario is inspired by a real class of ride-hailing launches: showing riders **rejection-count or matching transparency** (the app surfaces that trips are being declined or retried instead of looking idle). Rapido and peers have shipped variants of this idea; this repo simulates a war-room review of that kind of feature.
+- **Feature in plain terms:** while the user waits, the product makes visible that matching is active (e.g. rejections or attempts), so the experience is not a silent spinner.
+- **Pros**
+  - Transparency: users see activity behind the scenes.
+  - Reduces the feeling that the app is stuck or broken when matching is slow.
+  - Sets expectations that the system is working, not frozen.
+- **Cons**
+  - Surfaces **rejection** explicitly, which can feel personal or negative.
+  - Can increase perceived friction, stress, and complaints even when underlying supply is the real issue.
+  - Risk of higher drop-off or churn if the UI emphasizes bad news without enough offsetting reassurance.
 
-The Product Manager agent frames tradeoffs and churn or sentiment pressure. The Data Analyst agent emphasizes metric thresholds and trend deltas. The Marketing/Comms agent focuses on internal and external messaging angles. The Risk/Critic agent lists challenged assumptions and mitigations. The Reliability Engineer agent stresses confirmation latency, rejections, and operational guardrails. The Business Impact agent summarizes conversion, churn, and support exposure.
+## Metrics (latest row from metrics_timeseries.csv)
 
-Tools are plain CSV helpers: src/tools/metrics_tools.py loads the time series and summarizes the latest row plus simple window deltas; src/tools/feedback_tools.py loads feedback and aggregates sentiment counts, tag frequency, and negative ratio. The coordinator does not read release_notes.md; that file is human context in the data pack only.
+Each column is a snapshot at the end of the series; the tools also compute simple trend deltas (first three vs last three rows) for several fields.
 
-Sample data lives under data/baseline, data/optimistic, and data/critical. Each runnable scenario folder includes metrics_timeseries.csv and user_feedback.csv. Baseline also includes release_notes.md. If a scenario is missing user_feedback.csv, the coordinator falls back to data/baseline/user_feedback.csv. data/data_manifest.yaml inventories paths.
+- **ride_confirmation_rate_pct** — Share of booking attempts that end in a confirmed ride; core health of the funnel.
+- **cancellation_dropoff_rate_pct** — Users abandoning or canceling after seeing friction (including post-rejection visibility); proxy for UX pain.
+- **retry_rate_pct** — How often users retry after difficulty; high values suggest struggle or confusion.
+- **time_to_ride_confirmation_sec** — Latency until confirmation; operational and reliability pressure.
+- **fare_increase_rate_pct** — How much fares have moved in the period; pricing context alongside demand.
+- **price_elasticity_of_conversion** — Sensitivity of conversion to price; helps interpret revenue vs volume tradeoffs.
+- **driver_acceptance_rate_pct** — Supply-side willingness to take trips; low values stress matching.
+- **rejections_per_successful_ride** — Average driver declines before a success; direct lever for the transparency feature’s narrative and pain.
+- **support_tickets** — Volume of support contacts; load and sentiment pressure on ops.
+- **churn_pct** — User churn signal; long-term product and business risk.
 
-Each run overwrites outputs/final_decision_<scenario>.json and outputs/final_decision_<scenario>.yaml (for example outputs/final_decision_baseline.json). It also creates traces/trace_<scenario>_<YYYYMMDD_HHMMSS>.log. The returned dict includes _meta with absolute paths to those artifacts.
+Delta fields in the summary (e.g. delta_ride_confirmation_rate, delta_cancellation_dropoff, delta_support_tickets) are used for narrative and for parts of confidence scoring, not for the main Proceed/Pause/Roll Back gate.
 
-There is no FastAPI app or separate SPA in this repo. The browser UI is Streamlit in app.py (charts, agent activity, and the same JSON fields the CLI writes).
+## User feedback (user_feedback.csv)
+
+- Rows carry **sentiment** (positive / neutral / negative), **tags**, and text; tools aggregate **sentiment_counts**, **negative_ratio**, and **top_issue_tags**.
+- **release_notes.md** in the baseline pack is for human context only; the coordinator does not parse it.
+
+## Orchestration
+
+- **Coordinator** (linear flow in src/orchestrator/coordinator.py, not a graph engine):
+  - Resolve data/<scenario>/metrics_timeseries.csv and user_feedback.csv (fallback feedback file: data/baseline/user_feedback.csv if a scenario file is absent).
+  - **Tools:** metrics_tools.load_metrics + summarize_metrics; feedback_tools.load_feedback + summarize_sentiment.
+  - Build **shared_ctx:** scenario name, metric_summary, feedback_summary — every agent receives the same dict.
+  - Run agents **in order:** PM → Data Analyst → Marketing/Comms → Risk/Critic → Reliability Engineer → Business Impact. Each call is logged to a new traces/trace_<scenario>_<timestamp>.log.
+  - **Final decision:** computed only after all agents finish, by coordinator logic **_decide(metric_summary)** (see below). Not chosen by LLM majority vote.
+  - **Confidence:** coordinator **_confidence(...)** blends evidence strength vs reference bands, how many agents’ **metric-derived leans** match that final decision, data completeness, and a severity signal. Stored as confidence_score plus confidence_breakdown in the output.
+  - Merge agent outputs into rationale, risk_register, templated action_plan and communication_plan from the coordinator, then write_json / write_yaml to outputs/final_decision_<scenario>.json and .yaml.
+
+## Agents — what each does and how it “thinks”
+
+In code, “thinking” is either (1) an LLM prompt with shared_ctx or (2) a deterministic function with the same inputs. Published **decision_lean** per agent is **normalized to a metric-and-feedback vote** (_agent_vote_from_metrics) so narratives cannot override safety-style leans.
+
+- **Product Manager (pm)**  
+  - **Intent:** Product tradeoffs, retention, and whether sentiment is toxic enough to stop.  
+  - **Rule lean:** Roll Back if churn_pct > 4.8 or negative_ratio > 0.72; Pause if churn_pct > 4.0 or negative_ratio > 0.55; else Proceed.
+
+- **Data Analyst (data)**  
+  - **Intent:** Funnel health, confirmation and drop-off, supply acceptance.  
+  - **Rule lean:** Roll Back if ride_confirmation_rate_pct < 68 or driver_acceptance_rate_pct < 52; Pause if ride_confirmation_rate_pct < 74 or cancellation_dropoff_rate_pct > 28; else Proceed.
+
+- **Marketing / Comms (comms)**  
+  - **Intent:** Internal and external messaging; highly sensitive to feedback tone.  
+  - **Rule lean:** Roll Back if negative_ratio > 0.7; Pause if negative_ratio > 0.5; else Proceed.
+
+- **Risk / Critic (risk)**  
+  - **Intent:** Counts “high risk” signals: rejections_per_successful_ride > 3.8, cancellation_dropoff_rate_pct > 30, negative_ratio > 0.7.  
+  - **Rule lean:** Roll Back if two or more fire; Pause if exactly one; else Proceed.
+
+- **Reliability Engineer (reliability)**  
+  - **Intent:** Latency and repeated rejection loops as incident-style risk.  
+  - **Rule lean:** Roll Back if time_to_ride_confirmation_sec > 165 or rejections_per_successful_ride > 4.1; Pause if time > 145 or rejections > 3.5; else Proceed.
+
+- **Business Impact (business)**  
+  - **Intent:** Conversion and churn as revenue and support exposure.  
+  - **Rule lean:** Roll Back if ride_confirmation_rate_pct < 66 or churn_pct > 4.8; Pause if ride_confirmation_rate_pct < 74 or churn_pct > 3.6; else Proceed.
+
+## Who issues the final decision, and on what metrics
+
+- **Owner:** the **coordinator** (War Room decision function **_decide**), not any single persona agent and not the LLM.
+- **Inputs:** only **metric_summary** scalars (agents shape narrative and risk text; their leans feed **agreement** inside confidence, not the final label).
+- **Roll Back** if **any** severe threshold hits:
+  - ride_confirmation_rate_pct < 68, or cancellation_dropoff_rate_pct > 34, or driver_acceptance_rate_pct < 52, or churn_pct > 4.5, or time_to_ride_confirmation_sec > 160, or rejections_per_successful_ride > 4.2.
+- **Else Pause** if **any** of:
+  - ride_confirmation_rate_pct < 74, or cancellation_dropoff_rate_pct > 28, or time_to_ride_confirmation_sec > 145, or rejections_per_successful_ride > 3.5, or churn_pct > 3.6.
+- **Else Proceed.**
+
+Action and communication plans in the JSON are **selected from templates** keyed off that final decision (and feedback/metrics for nuance), then assembled with build_final_output in src/schemas/final_output_schema.py.
+
+## Outputs
+
+- Overwrites outputs/final_decision_<scenario>.json and outputs/final_decision_<scenario>.yaml each run.
+- Appends traces/trace_<scenario>_<YYYYMMDD_HHMMSS>.log.
+- Result dict includes _meta with paths; also agent_decisions, agent_summaries, confidence_breakdown beyond the core schema fields.
 
 ## Setup
 
@@ -24,21 +104,14 @@ From the repository root, using Python 3:
     source .venv/bin/activate
     pip install -r requirements.txt
 
-requirements.txt lists streamlit, pandas, and plotly; the rest uses the standard library.
-
-No environment variables are required for the default deterministic path. For optional Ollama integration, set OLLAMA_BASE_URL (default http://localhost:11434) and OLLAMA_MODEL (default llama3.2:3b). Install Ollama from https://ollama.com and pull a model, for example:
-
-    ollama pull llama3.2:3b
-
-If the LLM client errors or is unreachable, agents use their rule-based fallbacks automatically.
+- requirements.txt: streamlit, pandas, plotly; other imports are standard library.
+- Optional Ollama: OLLAMA_BASE_URL (default http://localhost:11434), OLLAMA_MODEL (default llama3.2:3b). Example: ollama pull llama3.2:3b from https://ollama.com
 
 ## Run (CLI)
 
     python3 run.py --scenario baseline
     python3 run.py --scenario optimistic
     python3 run.py --scenario critical
-
-The CLI prints decision, confidence, and paths from _meta.
 
 ## Run (Streamlit)
 
@@ -47,8 +120,6 @@ The CLI prints decision, confidence, and paths from _meta.
 ## Tests
 
     python3 -m unittest tests/test_assignment1_compliance.py
-
-The suite runs all three scenarios and checks expected decisions plus required top-level keys in the result dict.
 
 ## Repository layout
 
