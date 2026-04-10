@@ -1,7 +1,9 @@
 from typing import Dict, List
 
 
-def run_risk_critic_agent(metric_summary: Dict[str, float], feedback_summary: Dict[str, object]) -> Dict[str, object]:
+def run_risk_critic_agent(
+    metric_summary: Dict[str, float], feedback_summary: Dict[str, object], scenario: str = "baseline"
+) -> Dict[str, object]:
     risks: List[Dict[str, str]] = []
 
     if metric_summary["rejections_per_successful_ride"] > 3.8:
@@ -29,8 +31,15 @@ def run_risk_critic_agent(metric_summary: Dict[str, float], feedback_summary: Di
             }
         )
 
+    if not risks and scenario == "optimistic":
+        critic_note = "Material risk is low given current metrics; keep standard monitoring and quarterly transparency reviews."
+    elif not risks:
+        critic_note = "No immediate high-severity risks detected, but trend regression remains possible."
+    else:
+        critic_note = "Elevated signals warrant tighter review until mitigations prove out."
+
     return {
         "agent": "Risk/Critic Agent",
         "risk_register": risks,
-        "critic_note": "Current evidence is sufficient for a temporary pause decision if thresholds are breached.",
+        "critic_note": critic_note,
     }

@@ -1,0 +1,18 @@
+2026-04-10T04:25:51.496007+00:00 | Coordinator        | Run started for scenario=critical
+2026-04-10T04:25:51.496276+00:00 | Tool:metrics       | Loaded and summarized metrics data
+2026-04-10T04:25:51.496340+00:00 | Tool:feedback      | Loaded and summarized feedback data
+2026-04-10T04:25:51.496400+00:00 | Tool:feedback      | Feedback source: /Users/heshikapokala/Documents/Projects/Purple Merit/Assignment - 1/data/critical/user_feedback.csv
+2026-04-10T04:25:51.496659+00:00 | PM Agent           | LLM unavailable, using fallback rules (Ollama unavailable: <urlopen error [Errno 61] Connection refused>)
+2026-04-10T04:25:51.496733+00:00 | PM Agent           | Completed go/no-go framing
+2026-04-10T04:25:51.496925+00:00 | Data Analyst Agent | LLM unavailable, using fallback rules (Ollama unavailable: <urlopen error [Errno 61] Connection refused>)
+2026-04-10T04:25:51.496996+00:00 | Data Analyst Agent | Completed metric trend and threshold checks
+2026-04-10T04:25:51.497174+00:00 | Marketing/Comms Agent | LLM unavailable, using fallback rules (Ollama unavailable: <urlopen error [Errno 61] Connection refused>)
+2026-04-10T04:25:51.497242+00:00 | Marketing/Comms Agent | Completed communication guidance
+2026-04-10T04:25:51.497413+00:00 | Risk/Critic Agent  | LLM unavailable, using fallback rules (Ollama unavailable: <urlopen error [Errno 61] Connection refused>)
+2026-04-10T04:25:51.497484+00:00 | Risk/Critic Agent  | Completed risk challenge and mitigations
+2026-04-10T04:25:51.497658+00:00 | Reliability Engineer Agent | LLM unavailable, using fallback rules (Ollama unavailable: <urlopen error [Errno 61] Connection refused>)
+2026-04-10T04:25:51.497729+00:00 | Reliability Engineer Agent | Assessed incident severity and guardrails
+2026-04-10T04:25:51.497916+00:00 | Business Impact Agent | LLM unavailable, using fallback rules (Ollama unavailable: <urlopen error [Errno 61] Connection refused>)
+2026-04-10T04:25:51.497984+00:00 | Business Impact Agent | Estimated business exposure and support impact
+2026-04-10T04:25:51.498056+00:00 | Coordinator        | Decision computed: Roll Back (confidence=0.95)
+2026-04-10T04:25:51.498497+00:00 | Coordinator        | Outputs written: final_decision_critical.json, final_decision_critical.yaml

@@ -1,7 +1,7 @@
 from typing import Dict
 
 
-def run_reliability_engineer_agent(metric_summary: Dict[str, float]) -> Dict[str, object]:
+def run_reliability_engineer_agent(metric_summary: Dict[str, float], scenario: str = "baseline") -> Dict[str, object]:
     sev = "low"
     if metric_summary["time_to_ride_confirmation_sec"] > 160 or metric_summary["rejections_per_successful_ride"] > 4.0:
         sev = "high"
@@ -18,6 +18,10 @@ def run_reliability_engineer_agent(metric_summary: Dict[str, float]) -> Dict[str
         recommendation = "Slow rollout and increase monitoring frequency."
     if sev == "high":
         recommendation = "Pause rollout and prioritize reliability hotfix."
+    if sev == "low" and scenario == "optimistic":
+        recommendation = (
+            "Latency and rejection loops sit in a healthy band; maintain rollout and keep six-hour operational checkpoints."
+        )
 
     return {
         "agent": "Reliability Engineer Agent",

@@ -1,0 +1,18 @@
+2026-04-10T04:25:33.675800+00:00 | Coordinator        | Run started for scenario=optimistic
+2026-04-10T04:25:33.678390+00:00 | Tool:metrics       | Loaded and summarized metrics data
+2026-04-10T04:25:33.678562+00:00 | Tool:feedback      | Loaded and summarized feedback data
+2026-04-10T04:25:33.678634+00:00 | Tool:feedback      | Feedback source: data/optimistic/user_feedback.csv
+2026-04-10T04:25:33.684229+00:00 | PM Agent           | LLM unavailable, using fallback rules (Ollama unavailable: <urlopen error [Errno 61] Connection refused>)
+2026-04-10T04:25:33.684367+00:00 | PM Agent           | Completed go/no-go framing
+2026-04-10T04:25:33.684657+00:00 | Data Analyst Agent | LLM unavailable, using fallback rules (Ollama unavailable: <urlopen error [Errno 61] Connection refused>)
+2026-04-10T04:25:33.684745+00:00 | Data Analyst Agent | Completed metric trend and threshold checks
+2026-04-10T04:25:33.684963+00:00 | Marketing/Comms Agent | LLM unavailable, using fallback rules (Ollama unavailable: <urlopen error [Errno 61] Connection refused>)
+2026-04-10T04:25:33.685032+00:00 | Marketing/Comms Agent | Completed communication guidance
+2026-04-10T04:25:33.685225+00:00 | Risk/Critic Agent  | LLM unavailable, using fallback rules (Ollama unavailable: <urlopen error [Errno 61] Connection refused>)
+2026-04-10T04:25:33.685294+00:00 | Risk/Critic Agent  | Completed risk challenge and mitigations
+2026-04-10T04:25:33.685479+00:00 | Reliability Engineer Agent | LLM unavailable, using fallback rules (Ollama unavailable: <urlopen error [Errno 61] Connection refused>)
+2026-04-10T04:25:33.685544+00:00 | Reliability Engineer Agent | Assessed incident severity and guardrails
+2026-04-10T04:25:33.685716+00:00 | Business Impact Agent | LLM unavailable, using fallback rules (Ollama unavailable: <urlopen error [Errno 61] Connection refused>)
+2026-04-10T04:25:33.685782+00:00 | Business Impact Agent | Estimated business exposure and support impact
+2026-04-10T04:25:33.685855+00:00 | Coordinator        | Decision computed: Proceed (confidence=0.91)
+2026-04-10T04:25:33.686516+00:00 | Coordinator        | Outputs written: final_decision_optimistic.json, final_decision_optimistic.yaml

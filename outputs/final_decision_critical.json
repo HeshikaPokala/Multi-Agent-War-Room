@@ -2,8 +2,8 @@
   "decision": "Roll Back",
   "rationale": {
     "key_metric_drivers": [
-      "High rejection rates (9.9 rejections per successful ride) and drop-off issues are causing rider stress, leading to a retry rate of 25.5%.",
-      "The driver acceptance rate is low at 26.9%, indicating supply friction and contributing to the high rejection rates."
+      "The rejection count feature has shown a significant increase in recent days, indicating a rise in supply friction. This has led to an uptick in retries, resulting in a higher stress level for both riders and drivers.",
+      "Drop-off rates are also on the rise, contributing to the overall sentiment erosion. Riders are experiencing frustration and disappointment due to unavailability of drivers."
     ],
     "feedback_summary": {
       "sentiment_counts": {
@@ -22,34 +22,29 @@
       "negative_ratio": 0.8
     },
     "pm_perspective": [
-      "Riders are rejected by drivers, potentially leading to a decrease in overall satisfaction and churn rate.",
-      "Displaying rejections can create a negative sentiment, with 80% of feedback indicating dissatisfaction with the current feature."
+      "Riders are rejected by drivers during ride search, causing friction and sentiment pressure."
     ],
     "reliability_perspective": {
       "agent": "Reliability Engineer Agent",
-      "summary": "Riders are rejected by drivers, causing friction and repeated rejections during ride search. The current feature does not provide a clear indication of the driver rejection count.",
+      "summary": "Rising rejections per successful ride indicate potential friction and sentiment pressure. Mitigation is crucial to prevent rejection loops.",
       "findings": [
-        "The high retry rate (25.5%) indicates that riders are experiencing issues with getting accepted into rides, likely due to driver rejections."
+        "* Rejection count during ride search may lead to frustration for users, causing sentiment shifts."
       ],
-      "recommendation": "Implement real-time display of driver rejection counts during ride search to help riders quickly identify and resolve the issue.",
+      "recommendation": "Implement real-time driver availability checks and optimize algorithmic matching to reduce rejections per successful ride.",
       "decision_lean": "Roll Back",
       "risk_flags": [
-        "System Complexity",
-        "User Experience"
+        "friction",
+        "sentiment pressure"
       ]
     },
     "business_perspective": {
       "agent": "Business Impact Agent",
-      "summary": "Displaying driver rejection count during ride search may lead to increased rider rejection rates, potentially causing a 15.6% decrease in conversion rates and a 10.3% increase in churn. This could result in an additional 62 support tickets due to driver rejections.",
+      "summary": "Rising friction and sentiment pressure indicate a need for mitigation as rejections per successful ride continue to increase, leading to a potential $X in conversion loss, elevated churn risk, and increased support burden.",
       "findings": [
-        "Riders are more likely to be rejected by drivers if they see a high rejection count during ride search, potentially leading to a decrease in overall conversion rates and increased churn."
+        "* Rejection count feature may be discouraging riders from accepting rides, potentially impacting business exposure."
       ],
-      "recommendation": "Consider displaying the number of riders rejected by drivers for each available driver to increase transparency and accountability among drivers.",
-      "decision_lean": "Roll Back",
-      "risk_flags": [
-        "Increased Churn",
-        "Potential Support Burden"
-      ]
+      "recommendation": "Implementing measures to reduce rejections per successful ride, such as improving communication between drivers and riders, could help mitigate conversion loss (estimated at $Y) and churn risk (increased by Z%).",
+      "decision_lean": "Roll Back"
     }
   },
   "risk_register": [
@@ -106,12 +101,12 @@
     "business": "Roll Back"
   },
   "agent_summaries": {
-    "pm": "The feature to display driver rejection count during ride search may negatively impact user experience, causing frustration and anxiety among riders.",
-    "data": "Riders are experiencing stress due to high rejection rates and drop-off issues, leading to a retry rate of 25.5%. The driver acceptance rate is low at 26.9%, resulting in an average of 9.9 rejections per successful ride.",
-    "comms": "Ride-Booking Launch Feature Rollout: Driver Rejection Count During Ride Search May Impact User Experience",
-    "risk": "Displaying rider rejection count during ride search may lead to increased driver frustration, potentially driving down the driver acceptance rate and impacting overall ride confirmation rates.",
-    "reliability": "Riders are rejected by drivers, causing friction and repeated rejections during ride search. The current feature does not provide a clear indication of the driver rejection count.",
-    "business": "Displaying driver rejection count during ride search may lead to increased rider rejection rates, potentially causing a 15.6% decrease in conversion rates and a 10.3% increase in churn. This could result in an additional 62 support tickets due to driver rejections."
+    "pm": "Riders are being rejected by drivers at an alarming rate, causing friction and sentiment pressure. The high rejections per successful ride count (9.9) indicates a significant issue that needs mitigation. With 489 support tickets currently open, the system is under strain. To avoid further deterioration, we must address this critical feature.",
+    "data": "Riders are being rejected by drivers at an alarming rate, causing friction and eroding user sentiment. The situation is critical, with a high retry rate and drop-off rates. Immediate mitigation is necessary to avoid further strain on the system.",
+    "comms": "Rising rejections per successful ride and growing driver rejection count are causing friction among riders. We need to address this issue ASAP.",
+    "risk": "Rising friction and sentiment pressure detected, with 489 support tickets and a rejections per successful ride of 9.9. This indicates potential issues with driver acceptance rates and riders being rejected by drivers.",
+    "reliability": "Rising rejections per successful ride indicate potential friction and sentiment pressure. Mitigation is crucial to prevent rejection loops.",
+    "business": "Rising friction and sentiment pressure indicate a need for mitigation as rejections per successful ride continue to increase, leading to a potential $X in conversion loss, elevated churn risk, and increased support burden."
   },
   "confidence_breakdown": {
     "score": 0.95,

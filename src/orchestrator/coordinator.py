@@ -16,6 +16,39 @@ from src.tools.metrics_tools import load_metrics, summarize_metrics
 from src.utils.io_helpers import ensure_dir, write_json, write_yaml
 from src.utils.logger import TraceLogger
 
+# Per-scenario LLM task wording so optimistic runs do not inherit "stress-first" prompts.
+_AGENT_TASKS: Dict[str, Dict[str, str]] = {
+    "baseline": {
+        "PM Agent": "Assess whether this feature should proceed, pause, or roll back from product-impact perspective.",
+        "Data Analyst Agent": "Analyze feature-level metric and sentiment patterns, focusing on rider stress, retries, drop-off, and supply friction.",
+        "Marketing/Comms Agent": "Create internal and external communication guidance specific to this feature rollout impact.",
+        "Risk/Critic Agent": "Challenge assumptions and produce top risks plus mitigations for this feature rollout.",
+        "Reliability Engineer Agent": "Assess operational reliability impact (confirmation time, friction, repeated rejections) and suggest immediate safeguards.",
+        "Business Impact Agent": "Estimate business impact on conversion, churn, and support burden for this feature.",
+    },
+    "optimistic": {
+        "PM Agent": "Assess go/no-go from a product perspective for a rollout that is meeting targets: emphasize validation, retention, transparency value, and where metrics show the feature is helping rather than hurting.",
+        "Data Analyst Agent": "Analyze metrics and sentiment for a healthy rollout: highlight improving confirmation, acceptance, rejection trends, and contained drop-off. Explain high retry_rate only in context of stable or improving abandonment metrics.",
+        "Marketing/Comms Agent": "Create confident, transparent internal and external messaging for a launch that is performing well; celebrate clarity for riders without dismissing routine monitoring.",
+        "Risk/Critic Agent": "Identify only material residual risks; if metrics are strong, state that explicitly and keep mitigations light (routine monitoring, not alarmist).",
+        "Reliability Engineer Agent": "Assess reliability: if confirmation time and rejection loops are within guardrails, say so clearly and reserve safeguards for edge cases.",
+        "Business Impact Agent": "Estimate business impact when conversion and churn look favorable: stress stability, manageable support, and upside from transparency.",
+    },
+    "critical": {
+        "PM Agent": "Assess go/no-go under degraded signals: prioritize churn, negative sentiment, and whether transparency is doing more harm than good.",
+        "Data Analyst Agent": "Analyze stress signals: retries, drop-off, supply friction, and sentiment erosion; tie findings to metric movements.",
+        "Marketing/Comms Agent": "Create communication guidance under strain: acknowledge friction, set expectations, and explain mitigations.",
+        "Risk/Critic Agent": "Challenge assumptions aggressively; surface top risks, severities, and concrete mitigations.",
+        "Reliability Engineer Agent": "Assess operational reliability under load: confirmation delays, rejection loops, and incident-style safeguards.",
+        "Business Impact Agent": "Estimate business exposure: conversion loss, churn risk, and support burden from the current trajectory.",
+    },
+}
+
+
+def _agent_task(scenario: str, role: str) -> str:
+    pack = _AGENT_TASKS.get(scenario) or _AGENT_TASKS["baseline"]
+    return pack.get(role) or _AGENT_TASKS["baseline"][role]
+
 
 def _is_severe_failure(metric_summary: Dict[str, float]) -> bool:
     return (
@@ -249,7 +282,10 @@ def _normalize_agent_output(
 
 
 def _normalize_risk_register(
-    candidate_risks: Any, metric_summary: Dict[str, float], feedback_summary: Dict[str, Any]
+    candidate_risks: Any,
+    metric_summary: Dict[str, float],
+    feedback_summary: Dict[str, Any],
+    scenario: str = "baseline",
 ) -> Any:
     generic_mitigations = {"investigate and mitigate", "monitor"}
     normalized = []
@@ -304,13 +340,22 @@ def _normalize_risk_register(
             }
         )
     if not fallback:
-        fallback.append(
-            {
-                "risk": "No immediate high-severity risks detected, but trend regression remains possible.",
-                "severity": "low",
-                "mitigation": "Maintain 6-hour metric checks and freeze new experiments until trend stability is confirmed.",
-            }
-        )
+        if scenario == "optimistic":
+            fallback.append(
+                {
+                    "risk": "Residual risk is limited to normal marketplace variance; current trajectory supports continued rollout.",
+                    "severity": "low",
+                    "mitigation": "Keep six-hour metric reviews and align new experiments with existing guardrails.",
+                }
+            )
+        else:
+            fallback.append(
+                {
+                    "risk": "No immediate high-severity risks detected, but trend regression remains possible.",
+                    "severity": "low",
+                    "mitigation": "Maintain 6-hour metric checks and freeze new experiments until trend stability is confirmed.",
+                }
+            )
     return fallback
 
 
@@ -397,9 +442,9 @@ def run_war_room(project_root: Path, scenario: str, event_callback: Optional[Cal
 
     pm_view = _run_agent_smart(
         role="PM Agent",
-        task="Assess whether this feature should proceed, pause, or roll back from product-impact perspective.",
+        task=_agent_task(scenario, "PM Agent"),
         context=shared_ctx,
-        fallback_fn=lambda: run_pm_agent(metric_summary, feedback_summary),
+        fallback_fn=lambda: run_pm_agent(metric_summary, feedback_summary, scenario),
         logger=logger,
         event_callback=event_callback,
     )
@@ -410,9 +455,9 @@ def run_war_room(project_root: Path, scenario: str, event_callback: Optional[Cal
     _emit(event_callback, "PM Agent completed framing")
     data_view = _run_agent_smart(
         role="Data Analyst Agent",
-        task="Analyze feature-level metric and sentiment patterns, focusing on rider stress, retries, drop-off, and supply friction.",
+        task=_agent_task(scenario, "Data Analyst Agent"),
         context=shared_ctx,
-        fallback_fn=lambda: run_data_analyst_agent(metric_summary, feedback_summary),
+        fallback_fn=lambda: run_data_analyst_agent(metric_summary, feedback_summary, scenario),
         logger=logger,
         event_callback=event_callback,
     )
@@ -425,9 +470,9 @@ def run_war_room(project_root: Path, scenario: str, event_callback: Optional[Cal
     _emit(event_callback, "Data Analyst Agent completed analysis")
     comms_view = _run_agent_smart(
         role="Marketing/Comms Agent",
-        task="Create internal and external communication guidance specific to this feature rollout impact.",
+        task=_agent_task(scenario, "Marketing/Comms Agent"),
         context=shared_ctx,
-        fallback_fn=lambda: run_marketing_comms_agent(feedback_summary),
+        fallback_fn=lambda: run_marketing_comms_agent(feedback_summary, scenario),
         logger=logger,
         event_callback=event_callback,
     )
@@ -441,21 +486,23 @@ def run_war_room(project_root: Path, scenario: str, event_callback: Optional[Cal
     _emit(event_callback, "Marketing/Comms Agent completed messaging plan")
     risk_view = _run_agent_smart(
         role="Risk/Critic Agent",
-        task="Challenge assumptions and produce top risks plus mitigations for this feature rollout.",
+        task=_agent_task(scenario, "Risk/Critic Agent"),
         context=shared_ctx,
-        fallback_fn=lambda: run_risk_critic_agent(metric_summary, feedback_summary),
+        fallback_fn=lambda: run_risk_critic_agent(metric_summary, feedback_summary, scenario),
         logger=logger,
         event_callback=event_callback,
     )
     risk_view = _normalize_agent_output("risk", risk_view, metric_summary, feedback_summary)
-    risk_view["risk_register"] = _normalize_risk_register(risk_view.get("risk_register"), metric_summary, feedback_summary)
+    risk_view["risk_register"] = _normalize_risk_register(
+        risk_view.get("risk_register"), metric_summary, feedback_summary, scenario
+    )
     logger.log("Risk/Critic Agent", "Completed risk challenge and mitigations")
     _emit(event_callback, "Risk/Critic Agent completed challenge phase")
     reliability_view = _run_agent_smart(
         role="Reliability Engineer Agent",
-        task="Assess operational reliability impact (confirmation time, friction, repeated rejections) and suggest immediate safeguards.",
+        task=_agent_task(scenario, "Reliability Engineer Agent"),
         context=shared_ctx,
-        fallback_fn=lambda: run_reliability_engineer_agent(metric_summary),
+        fallback_fn=lambda: run_reliability_engineer_agent(metric_summary, scenario),
         logger=logger,
         event_callback=event_callback,
     )
@@ -464,9 +511,9 @@ def run_war_room(project_root: Path, scenario: str, event_callback: Optional[Cal
     _emit(event_callback, "Reliability Engineer Agent completed reliability assessment")
     business_view = _run_agent_smart(
         role="Business Impact Agent",
-        task="Estimate business impact on conversion, churn, and support burden for this feature.",
+        task=_agent_task(scenario, "Business Impact Agent"),
         context=shared_ctx,
-        fallback_fn=lambda: run_business_impact_agent(metric_summary),
+        fallback_fn=lambda: run_business_impact_agent(metric_summary, scenario),
         logger=logger,
         event_callback=event_callback,
     )

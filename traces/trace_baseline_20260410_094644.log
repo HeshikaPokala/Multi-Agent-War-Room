@@ -1,0 +1,5 @@
+2026-04-10T04:16:44.799671+00:00 | Coordinator        | Run started for scenario=baseline
+2026-04-10T04:16:44.800026+00:00 | Tool:metrics       | Loaded and summarized metrics data
+2026-04-10T04:16:44.800065+00:00 | Tool:feedback      | Loaded and summarized feedback data
+2026-04-10T04:16:44.800102+00:00 | Tool:feedback      | Feedback source: /Users/heshikapokala/Documents/Projects/Purple Merit/Assignment - 1/data/baseline/user_feedback.csv
+2026-04-10T04:16:49.517765+00:00 | PM Agent           | LLM reasoning used (Ollama)

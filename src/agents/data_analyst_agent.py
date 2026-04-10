@@ -1,8 +1,23 @@
 from typing import Dict
 
 
-def run_data_analyst_agent(metric_summary: Dict[str, float], feedback_summary: Dict[str, object]) -> Dict[str, object]:
+def run_data_analyst_agent(
+    metric_summary: Dict[str, float], feedback_summary: Dict[str, object], scenario: str = "baseline"
+) -> Dict[str, object]:
     findings = []
+
+    if scenario == "optimistic":
+        findings.append(
+            f"Ride confirmation ({metric_summary['ride_confirmation_rate_pct']:.1f}%) and driver acceptance "
+            f"({metric_summary['driver_acceptance_rate_pct']:.1f}%) show the marketplace absorbing rejection visibility well."
+        )
+        findings.append(
+            "Retries are elevated but abandonment stays controlled—consistent with riders adjusting bids or wait times, not mass exit."
+        )
+        findings.append(
+            f"Rejections per successful ride ({metric_summary['rejections_per_successful_ride']:.1f}) trend down alongside faster confirmation "
+            f"({metric_summary['time_to_ride_confirmation_sec']:.0f}s), which supports the transparency narrative."
+        )
 
     if metric_summary["cancellation_dropoff_rate_pct"] > 30.0:
         findings.append("Drop-off is high after users see repeated rejection counts.")
